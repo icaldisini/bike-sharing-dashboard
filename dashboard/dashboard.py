@@ -16,7 +16,14 @@ SECOND = "#f28e2b"
 NEUTRAL = "#c8ccd2"
 LOW = "#d1495b"
 
-SEASON_ORDER = ["Spring", "Summer", "Fall", "Winter"]
+# Label musim mengikuti kalender (hasil koreksi di notebook): 1=Winter, 2=Spring, 3=Summer, 4=Fall
+SEASON_ORDER = ["Winter", "Spring", "Summer", "Fall"]
+SEASON_RANGE_TEXT = "Winter: 21 Des–20 Mar · Spring: 21 Mar–20 Jun · Summer: 21 Jun–22 Sep · Fall: 23 Sep–20 Des"
+
+# Teks pertanyaan bisnis (identik dengan yang ada di notebook)
+Q1 = "Pada jam berapa puncak rata-rata penyewaan sepeda per jam terjadi pada **hari kerja** dibandingkan **hari libur/akhir pekan** selama periode Januari 2011 – Desember 2012, dan berapa rata-rata jumlah sepeda yang disewa pada jam puncak tersebut, sebagai dasar penjadwalan redistribusi armada dan perawatan sepeda?"
+Q2 = "Berapa persen penurunan rata-rata penyewaan sepeda harian saat kondisi cuaca **hujan/salju ringan** dibandingkan cuaca **cerah**, serta musim apa yang memiliki rata-rata penyewaan harian tertinggi dan terendah selama periode 2011 – 2012, sebagai dasar perencanaan kapasitas armada dan program promosi musiman?"
+Q3 = "Berapa tingkat pertumbuhan total penyewaan sepeda tahun 2012 dibandingkan tahun 2011 (*Year-over-Year*) untuk setiap bulan, dan berapa kontribusi pengguna **casual** vs **registered** terhadap total penyewaan di masing-masing tahun, sebagai dasar strategi konversi pengguna casual menjadi member terdaftar?"
 WEATHER_ORDER = ["Cerah/Berawan", "Berkabut/Mendung", "Hujan/Salju Ringan", "Hujan Lebat/Badai"]
 MONTH_ORDER = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
 SEGMENT_ORDER = ["Dini Hari (00-05)", "Pagi Sibuk (06-09)", "Siang (10-15)", "Sore Sibuk (16-19)", "Malam (20-23)"]
@@ -98,9 +105,19 @@ with st.sidebar:
     else:
         start_date = end_date = date_range[0] if isinstance(date_range, (list, tuple)) else date_range
 
-    seasons = st.multiselect("Musim", SEASON_ORDER, default=SEASON_ORDER)
+    selected_seasons = st.multiselect(
+        "Musim", ["All Seasons"] + SEASON_ORDER, default=["All Seasons"],
+        help="Pilih 'All Seasons' untuk menampilkan semua musim, atau hapus lalu pilih musim tertentu.")
+    st.caption(SEASON_RANGE_TEXT)
     st.markdown("---")
     st.caption("Dibuat oleh Faishal Muflih Irfanu Tsaqib · Proyek Analisis Data Dicoding")
+
+# "All Seasons" (atau pilihan kosong) berarti semua musim ditampilkan
+if "All Seasons" in selected_seasons or not selected_seasons:
+    seasons = SEASON_ORDER
+else:
+    seasons = selected_seasons
+season_label = "All Seasons" if set(seasons) == set(SEASON_ORDER) else ", ".join(seasons)
 
 main_df = all_df[(all_df["date"].dt.date >= start_date) & (all_df["date"].dt.date <= end_date)
                  & (all_df["season"].isin(seasons))]
@@ -113,7 +130,7 @@ daily_df = create_daily_df(main_df)
 
 # ======================== Header & metrics ========================
 st.title("🚲 Bike Sharing Dashboard")
-st.markdown(f"Periode **{start_date:%d %b %Y} – {end_date:%d %b %Y}** · Musim: **{', '.join(seasons)}**")
+st.markdown(f"Periode **{start_date:%d %b %Y} – {end_date:%d %b %Y}** · Musim: **{season_label}**")
 
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Total Penyewaan", f"{main_df['total_rentals'].sum():,}")
@@ -125,7 +142,8 @@ tab1, tab2, tab3, tab4 = st.tabs(["⏰ Pola per Jam", "🌦️ Cuaca & Musim", "
 
 # ======================== Tab 1: Pertanyaan 1 ========================
 with tab1:
-    st.subheader("Kapan puncak penyewaan terjadi pada hari kerja vs libur/akhir pekan?")
+    st.subheader("Pertanyaan 1")
+    st.markdown(Q1)
     hourly = create_hourly_pattern_df(main_df)
     fig, ax = plt.subplots(figsize=(12, 5))
     colors = {"Hari Kerja": HIGHLIGHT, "Libur/Akhir Pekan": SECOND}
@@ -157,7 +175,8 @@ with tab1:
 
 # ======================== Tab 2: Pertanyaan 2 ========================
 with tab2:
-    st.subheader("Bagaimana pengaruh cuaca dan musim terhadap penyewaan harian?")
+    st.subheader("Pertanyaan 2")
+    st.markdown(Q2)
     weather = create_weather_df(daily_df)
     season = create_season_df(daily_df)
 
@@ -192,7 +211,7 @@ with tab2:
         st.pyplot(fig)
 
     fig, ax = plt.subplots(figsize=(12, 4.5))
-    palette = {"Spring": "#7fb069", "Summer": SECOND, "Fall": HIGHLIGHT, "Winter": "#9aa5b1"}
+    palette = {"Winter": "#9aa5b1", "Spring": "#7fb069", "Summer": SECOND, "Fall": HIGHLIGHT}
     sns.scatterplot(data=daily_df, x="temp_c", y="total_rentals", hue="season", palette=palette,
                     hue_order=[s for s in SEASON_ORDER if s in seasons], alpha=0.75, ax=ax)
     ax.set_title(f"Suhu vs penyewaan harian (r = {daily_df['temp_c'].corr(daily_df['total_rentals']):.2f})")
@@ -206,13 +225,14 @@ with tab2:
     with st.expander("💡 Insight"):
         st.markdown(
             "- Pada periode penuh 2011–2012, hujan/salju ringan menurunkan rata-rata penyewaan harian **±63%** dibanding cuaca cerah.\n"
-            "- Musim **Fall** tertinggi (±5.644/hari) dan **Spring** terendah (±2.604/hari).\n"
+            "- Musim **Summer** tertinggi (±5.644/hari) dan **Winter** terendah (±2.604/hari).\n"
             "- Suhu adalah pendorong utama (r ≈ 0,63); penyewaan ideal pada suhu 20–30 °C."
         )
 
 # ======================== Tab 3: Pertanyaan 3 ========================
 with tab3:
-    st.subheader("Bagaimana pertumbuhan penyewaan 2012 vs 2011 dan kontribusi tiap tipe pengguna?")
+    st.subheader("Pertanyaan 3")
+    st.markdown(Q3)
     monthly = create_monthly_df(main_df)
     fig, ax = plt.subplots(figsize=(12, 5))
     year_colors = {2011: NEUTRAL, 2012: HIGHLIGHT}

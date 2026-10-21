@@ -46,7 +46,7 @@ streamlit run dashboard.py
 Dashboard akan terbuka di browser pada `http://localhost:8501`.
 
 ## Fitur Dashboard
-- **Filter** rentang tanggal dan musim di sidebar.
+- **Filter** rentang tanggal dan musim di sidebar (tersedia opsi **All Seasons**). Label musim mengikuti kalender: Winter (21 Des–20 Mar), Spring (21 Mar–20 Jun), Summer (21 Jun–22 Sep), Fall (23 Sep–20 Des).
 - **Metrik utama:** total penyewaan, rata-rata per hari, porsi pengguna registered & casual.
 - **Pola per Jam:** jam puncak penyewaan hari kerja vs libur/akhir pekan (Pertanyaan 1).
 - **Cuaca & Musim:** pengaruh kondisi cuaca, musim, dan suhu terhadap penyewaan harian (Pertanyaan 2).
